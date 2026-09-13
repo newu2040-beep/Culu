@@ -104,6 +104,7 @@ class CuluRepository(
     suspend fun updateCompactMode(enabled: Boolean) = preferencesRepository.updateCompactMode(enabled)
     suspend fun updateHapticsEnabled(enabled: Boolean) = preferencesRepository.updateHapticsEnabled(enabled)
     suspend fun updateAllNotificationsEnabled(enabled: Boolean) = preferencesRepository.updateAllNotificationsEnabled(enabled)
+    suspend fun updateUserProfile(name: String, age: Int, gender: String, photoUri: String) = preferencesRepository.updateUserProfile(name, age, gender, photoUri)
 
     // Helper: calculate last 7 days date strings
     fun getLast7Days(): List<Pair<String, String>> {

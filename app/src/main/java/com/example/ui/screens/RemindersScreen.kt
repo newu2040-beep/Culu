@@ -22,6 +22,7 @@ import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.DeleteOutline
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Medication
 import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.VolumeUp
@@ -47,6 +48,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.database.ReminderItem
@@ -57,6 +61,7 @@ import com.example.ui.components.LiquidGlassCard
 import com.example.ui.components.LiquidGlassChip
 import com.example.ui.components.LiquidGlassPill
 import com.example.ui.components.LiquidGlassSurface
+import com.example.ui.utils.LocalResponsiveConfig
 
 @Composable
 fun RemindersScreen(
@@ -64,6 +69,7 @@ fun RemindersScreen(
     todayLogs: List<ReminderLog>,
     preferences: UserPreferences,
     onOpenAddReminder: () -> Unit,
+    onEditReminder: (ReminderItem) -> Unit,
     onToggleActive: (ReminderItem) -> Unit,
     onDeleteReminder: (ReminderItem) -> Unit,
     onMarkReminderStatus: (ReminderItem, String) -> Unit,
@@ -72,7 +78,8 @@ fun RemindersScreen(
     isDark: Boolean,
     modifier: Modifier = Modifier
 ) {
-    val isCompact = preferences.compactModeEnabled
+    val responsive = LocalResponsiveConfig.current
+    val isCompact = responsive.isCompactWidth || preferences.compactModeEnabled
     var selectedFilter by remember { mutableStateOf("ALL") } // "ALL", "MEDICINE", "CUSTOM"
 
     val filteredReminders = remember(reminders, selectedFilter) {
@@ -89,12 +96,12 @@ fun RemindersScreen(
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(
-                top = if (isCompact) 12.dp else 20.dp,
-                bottom = 140.dp, // space for floating add button & bottom bar
-                start = if (isCompact) 14.dp else 20.dp,
-                end = if (isCompact) 14.dp else 20.dp
+                top = responsive.screenTopPadding,
+                bottom = responsive.screenBottomPadding + 28.dp, // space for floating add button & bottom bar
+                start = responsive.screenHorizontalPadding,
+                end = responsive.screenHorizontalPadding
             ),
-            verticalArrangement = Arrangement.spacedBy(if (isCompact) 12.dp else 16.dp)
+            verticalArrangement = Arrangement.spacedBy(responsive.itemSpacing)
         ) {
             // Header
             item {
@@ -112,7 +119,7 @@ fun RemindersScreen(
                         )
                         Text(
                             text = "Custom date, real-time alerts & voice playback",
-                            fontSize = 13.sp,
+                            fontSize = if (isCompact) 12.sp else 13.sp,
                             color = if (isDark) Color.White.copy(alpha = 0.65f) else Color(0xFF64748B)
                         )
                     }
@@ -136,7 +143,7 @@ fun RemindersScreen(
                             modifier = Modifier.weight(1f)
                         ) {
                             LiquidGlassSurface(
-                                modifier = Modifier.size(38.dp),
+                                modifier = Modifier.size(if (isCompact) 34.dp else 38.dp),
                                 shape = CircleShape,
                                 isDark = isDark
                             ) {
@@ -145,7 +152,7 @@ fun RemindersScreen(
                                     contentDescription = null,
                                     tint = Color(0xFF38BDF8),
                                     modifier = Modifier
-                                        .size(20.dp)
+                                        .size(if (isCompact) 18.dp else 20.dp)
                                         .align(Alignment.Center)
                                 )
                             }
@@ -153,17 +160,19 @@ fun RemindersScreen(
                             Column {
                                 Text(
                                     text = "Real-Time Alert & Voice",
-                                    fontSize = 13.sp,
+                                    fontSize = if (isCompact) 12.sp else 13.sp,
                                     fontWeight = FontWeight.Bold,
                                     color = if (isDark) Color.White else Color(0xFF0F172A)
                                 )
                                 Text(
                                     text = "Hear loud alert announcement now",
-                                    fontSize = 11.sp,
+                                    fontSize = if (isCompact) 10.sp else 11.sp,
                                     color = if (isDark) Color.White.copy(alpha = 0.65f) else Color(0xFF64748B)
                                 )
                             }
                         }
+
+                        Spacer(modifier = Modifier.width(6.dp))
 
                         LiquidGlassPill(
                             isDark = isDark,
@@ -173,13 +182,13 @@ fun RemindersScreen(
                             Icon(
                                 imageVector = Icons.Default.VolumeUp,
                                 contentDescription = "Test",
-                                modifier = Modifier.size(14.dp),
+                                modifier = Modifier.size(13.dp),
                                 tint = Color(0xFF38BDF8)
                             )
-                            Spacer(modifier = Modifier.width(4.dp))
+                            Spacer(modifier = Modifier.width(3.dp))
                             Text(
                                 text = "Test Alert",
-                                fontSize = 11.sp,
+                                fontSize = if (isCompact) 10.sp else 11.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFF38BDF8)
                             )
@@ -188,10 +197,12 @@ fun RemindersScreen(
                 }
             }
 
-            // Filter Chips
+            // Filter Chips with smooth horizontal scroll if needed
             item {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     LiquidGlassChip(
@@ -265,6 +276,7 @@ fun RemindersScreen(
                         status = status,
                         onStatusChange = { newStatus -> onMarkReminderStatus(reminder, newStatus) },
                         onToggleActive = { onToggleActive(reminder) },
+                        onEdit = { onEditReminder(reminder) },
                         onDelete = { onDeleteReminder(reminder) },
                         onSpeak = { onSpeakReminder(reminder) },
                         isDark = isDark,
@@ -309,6 +321,7 @@ fun FullReminderCard(
     status: String,
     onStatusChange: (String) -> Unit,
     onToggleActive: () -> Unit,
+    onEdit: () -> Unit,
     onDelete: () -> Unit,
     onSpeak: () -> Unit,
     isDark: Boolean,
@@ -348,10 +361,10 @@ fun FullReminderCard(
                 Row(
                     modifier = Modifier.weight(1f),
                     verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    horizontalArrangement = Arrangement.spacedBy(if (isCompact) 8.dp else 12.dp)
                 ) {
                     LiquidGlassSurface(
-                        modifier = Modifier.size(if (isCompact) 40.dp else 46.dp),
+                        modifier = Modifier.size(if (isCompact) 36.dp else 44.dp),
                         shape = CircleShape,
                         isDark = isDark
                     ) {
@@ -359,22 +372,24 @@ fun FullReminderCard(
                             imageVector = icon,
                             contentDescription = null,
                             modifier = Modifier
-                                .size(24.dp)
+                                .size(if (isCompact) 20.dp else 24.dp)
                                 .align(Alignment.Center),
                             tint = typeColor
                         )
                     }
 
-                    Column {
+                    Column(modifier = Modifier.weight(1f, fill = false)) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
                             Text(
                                 text = reminder.title,
-                                fontSize = if (isCompact) 15.sp else 16.sp,
+                                fontSize = if (isCompact) 14.sp else 16.sp,
                                 fontWeight = FontWeight.Bold,
-                                color = if (isDark) Color.White else Color(0xFF0F172A)
+                                color = if (isDark) Color.White else Color(0xFF0F172A),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                             if (reminder.type == ReminderItem.TYPE_MEDICINE) {
                                 LiquidGlassSurface(
@@ -383,10 +398,10 @@ fun FullReminderCard(
                                 ) {
                                     Text(
                                         text = "Medicine",
-                                        fontSize = 10.sp,
+                                        fontSize = 9.sp,
                                         fontWeight = FontWeight.SemiBold,
                                         color = Color(0xFFA855F7),
-                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                        modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
                                     )
                                 }
                             }
@@ -395,8 +410,10 @@ fun FullReminderCard(
                         if (reminder.dosage.isNotEmpty()) {
                             Text(
                                 text = reminder.dosage,
-                                fontSize = 12.sp,
-                                color = if (isDark) Color(0xFFBAE6FD) else Color(0xFF0284C7)
+                                fontSize = if (isCompact) 11.sp else 12.sp,
+                                color = if (isDark) Color(0xFFBAE6FD) else Color(0xFF0284C7),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
 
@@ -409,13 +426,15 @@ fun FullReminderCard(
                                 imageVector = if (reminder.targetDateMillis != null) Icons.Default.CalendarMonth else Icons.Default.Alarm,
                                 contentDescription = null,
                                 tint = if (isDark) Color(0xFF38BDF8) else Color(0xFF0284C7),
-                                modifier = Modifier.size(13.dp)
+                                modifier = Modifier.size(12.dp)
                             )
                             Text(
                                 text = reminder.formattedSchedule,
-                                fontSize = 12.sp,
+                                fontSize = if (isCompact) 11.sp else 12.sp,
                                 fontWeight = FontWeight.Medium,
-                                color = if (isDark) Color.White.copy(alpha = 0.75f) else Color(0xFF334155)
+                                color = if (isDark) Color.White.copy(alpha = 0.75f) else Color(0xFF334155),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
                     }
@@ -516,6 +535,19 @@ fun FullReminderCard(
                                 color = Color(0xFF10B981)
                             )
                         }
+                    }
+
+                    LiquidGlassPill(
+                        isDark = isDark,
+                        onClick = onEdit,
+                        testTag = "edit_reminder_${reminder.id}"
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "Edit Reminder",
+                            modifier = Modifier.size(14.dp),
+                            tint = if (isDark) Color(0xFF38BDF8) else Color(0xFF0284C7)
+                        )
                     }
 
                     LiquidGlassPill(

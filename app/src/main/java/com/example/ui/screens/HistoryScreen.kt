@@ -40,6 +40,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.database.ReminderLog
@@ -48,6 +49,7 @@ import com.example.ui.components.LiquidGlassCard
 import com.example.ui.components.LiquidGlassPill
 import com.example.ui.components.LiquidGlassProgress
 import com.example.ui.components.LiquidGlassSurface
+import com.example.ui.utils.LocalResponsiveConfig
 import com.example.ui.viewmodel.DailyWaterStat
 import com.example.ui.viewmodel.ReminderStats
 
@@ -60,17 +62,18 @@ fun HistoryScreen(
     isDark: Boolean,
     modifier: Modifier = Modifier
 ) {
-    val isCompact = preferences.compactModeEnabled
+    val responsive = LocalResponsiveConfig.current
+    val isCompact = responsive.isCompactWidth || preferences.compactModeEnabled
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(
-            top = if (isCompact) 12.dp else 20.dp,
-            bottom = 110.dp,
-            start = if (isCompact) 14.dp else 20.dp,
-            end = if (isCompact) 14.dp else 20.dp
+            top = responsive.screenTopPadding,
+            bottom = responsive.screenBottomPadding,
+            start = responsive.screenHorizontalPadding,
+            end = responsive.screenHorizontalPadding
         ),
-        verticalArrangement = Arrangement.spacedBy(if (isCompact) 14.dp else 20.dp)
+        verticalArrangement = Arrangement.spacedBy(responsive.itemSpacing)
     ) {
         // Screen Title
         item {
@@ -83,7 +86,7 @@ fun HistoryScreen(
                 )
                 Text(
                     text = "Weekly hydration rhythm & routine consistency",
-                    fontSize = 13.sp,
+                    fontSize = if (isCompact) 12.sp else 13.sp,
                     color = if (isDark) Color.White.copy(alpha = 0.65f) else Color(0xFF64748B)
                 )
             }
@@ -114,7 +117,7 @@ fun HistoryScreen(
                             )
                             Text(
                                 text = "7-Day Water Intake",
-                                fontSize = 15.sp,
+                                fontSize = if (isCompact) 14.sp else 15.sp,
                                 fontWeight = FontWeight.SemiBold,
                                 color = if (isDark) Color.White else Color(0xFF0F172A)
                             )
@@ -124,19 +127,19 @@ fun HistoryScreen(
                             weeklyWaterStats.map { it.intakeMl }.average().toInt()
                         } else 0
                         Text(
-                            text = "Avg: $weeklyAvg ml/day",
+                            text = "Avg: $weeklyAvg ml/d",
                             fontSize = 12.sp,
                             color = if (isDark) Color(0xFF38BDF8) else Color(0xFF0284C7)
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(18.dp))
+                    Spacer(modifier = Modifier.height(if (isCompact) 12.dp else 18.dp))
 
                     // Minimal Liquid Glass Bar Visualizer
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(130.dp),
+                            .height(if (isCompact) 115.dp else 130.dp),
                         horizontalArrangement = Arrangement.SpaceEvenly,
                         verticalAlignment = Alignment.Bottom
                     ) {
@@ -150,20 +153,20 @@ fun HistoryScreen(
                                 if (stat.intakeMl > 0) {
                                     Text(
                                         text = "${(stat.intakeMl / 100f).toInt() / 10f}L",
-                                        fontSize = 10.sp,
+                                        fontSize = if (isCompact) 9.sp else 10.sp,
                                         fontWeight = FontWeight.Medium,
                                         color = if (isDark) Color.White.copy(alpha = 0.7f) else Color(0xFF64748B),
                                         modifier = Modifier.padding(bottom = 4.dp)
                                     )
                                 } else {
-                                    Spacer(modifier = Modifier.height(16.dp))
+                                    Spacer(modifier = Modifier.height(14.dp))
                                 }
 
                                 // Pill Bar
                                 Box(
                                     modifier = Modifier
-                                        .width(if (isCompact) 20.dp else 26.dp)
-                                        .height(80.dp)
+                                        .width(if (isCompact) 16.dp else 24.dp)
+                                        .height(if (isCompact) 68.dp else 80.dp)
                                         .clip(CircleShape)
                                         .background(if (isDark) Color(0xFF0C1929).copy(alpha = 0.5f) else Color(0xFFE2E8F0)),
                                     contentAlignment = Alignment.BottomCenter
@@ -172,7 +175,7 @@ fun HistoryScreen(
                                     Box(
                                         modifier = Modifier
                                             .fillMaxWidth()
-                                            .height((80 * barHeightPct).dp)
+                                            .height(((if (isCompact) 68 else 80) * barHeightPct).dp)
                                             .clip(CircleShape)
                                             .background(
                                                 Brush.verticalGradient(
@@ -185,12 +188,12 @@ fun HistoryScreen(
                                     )
                                 }
 
-                                Spacer(modifier = Modifier.height(6.dp))
+                                Spacer(modifier = Modifier.height(4.dp))
 
                                 // Day Label
                                 Text(
                                     text = stat.dayLabel,
-                                    fontSize = 11.sp,
+                                    fontSize = if (isCompact) 10.sp else 11.sp,
                                     fontWeight = FontWeight.SemiBold,
                                     color = if (isDark) Color.White.copy(alpha = 0.8f) else Color(0xFF334155)
                                 )
@@ -215,7 +218,7 @@ fun HistoryScreen(
                 ) {
                     // Left: Radial Completion Ring
                     Box(
-                        modifier = Modifier.size(if (isCompact) 100.dp else 115.dp),
+                        modifier = Modifier.size(if (isCompact) 85.dp else 110.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         val animatedPct by animateFloatAsState(
@@ -224,8 +227,8 @@ fun HistoryScreen(
                             label = "ringPct"
                         )
 
-                        Canvas(modifier = Modifier.fillMaxSize().padding(8.dp)) {
-                            val strokeWidth = 8.dp.toPx()
+                        Canvas(modifier = Modifier.fillMaxSize().padding(6.dp)) {
+                            val strokeWidth = (if (isCompact) 6.dp else 8.dp).toPx()
                             val arcRadius = (size.minDimension - strokeWidth) / 2f
                             val arcCenter = Offset(size.width / 2f, size.height / 2f)
 
@@ -258,13 +261,13 @@ fun HistoryScreen(
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(
                                 text = "${(reminderStats.completionPercentage * 100).toInt()}%",
-                                fontSize = 18.sp,
+                                fontSize = if (isCompact) 15.sp else 18.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = if (isDark) Color.White else Color(0xFF0F172A)
                             )
                             Text(
                                 text = "Completed",
-                                fontSize = 10.sp,
+                                fontSize = if (isCompact) 9.sp else 10.sp,
                                 color = if (isDark) Color.White.copy(alpha = 0.65f) else Color(0xFF64748B)
                             )
                         }
@@ -274,8 +277,8 @@ fun HistoryScreen(
                     Column(
                         modifier = Modifier
                             .weight(1f)
-                            .padding(start = 16.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                            .padding(start = if (isCompact) 12.dp else 16.dp),
+                        verticalArrangement = Arrangement.spacedBy(if (isCompact) 6.dp else 8.dp)
                     ) {
                         StatRow(
                             icon = Icons.Default.CheckCircle,
@@ -360,6 +363,7 @@ fun HistoryScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Row(
+                            modifier = Modifier.weight(1f),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(10.dp)
                         ) {
@@ -369,17 +373,21 @@ fun HistoryScreen(
                                 tint = if (isTaken) Color(0xFF10B981) else Color(0xFFF59E0B),
                                 modifier = Modifier.size(20.dp)
                             )
-                            Column {
+                            Column(modifier = Modifier.weight(1f, fill = false)) {
                                 Text(
                                     text = log.reminderTitle,
                                     fontSize = 14.sp,
                                     fontWeight = FontWeight.SemiBold,
-                                    color = if (isDark) Color.White else Color(0xFF0F172A)
+                                    color = if (isDark) Color.White else Color(0xFF0F172A),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                                 Text(
                                     text = log.reminderType,
                                     fontSize = 11.sp,
-                                    color = if (isDark) Color.White.copy(alpha = 0.55f) else Color(0xFF64748B)
+                                    color = if (isDark) Color.White.copy(alpha = 0.55f) else Color(0xFF64748B),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                             }
                         }

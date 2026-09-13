@@ -41,7 +41,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -51,6 +53,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import com.example.ui.components.LiquidGlassNavigationBar
 import com.example.ui.components.NavTabItem
+import com.example.ui.components.ProfileEditDialog
 import com.example.ui.screens.AddReminderSheet
 import com.example.ui.screens.HistoryScreen
 import com.example.ui.screens.HomeScreen
@@ -58,7 +61,11 @@ import com.example.ui.screens.RemindersScreen
 import com.example.ui.screens.SettingsDialog
 import com.example.ui.screens.WaterScreen
 import com.example.ui.theme.CuluTheme
+import com.example.ui.utils.AdaptiveContentContainer
+import com.example.ui.utils.LocalResponsiveConfig
+import com.example.ui.utils.rememberResponsiveConfig
 import com.example.ui.viewmodel.CuluViewModel
+import androidx.compose.runtime.CompositionLocalProvider
 
 class MainActivity : ComponentActivity() {
 
@@ -79,32 +86,45 @@ class MainActivity : ComponentActivity() {
                 else -> systemDark
             }
 
-            // Notification permission request for Android 13+
+            val responsiveConfig = rememberResponsiveConfig(userCompactMode = preferences.compactModeEnabled)
+
+            // Request permissions for Notifications and Gallery Media Storage
             val context = LocalContext.current
-            val notificationPermissionLauncher = rememberLauncherForActivityResult(
-                contract = ActivityResultContracts.RequestPermission()
-            ) { isGranted ->
-                viewModel.updateAllNotificationsEnabled(isGranted)
+            val permissionsToRequest = remember {
+                val list = mutableListOf<String>()
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                    list.add(Manifest.permission.POST_NOTIFICATIONS)
+                    list.add(Manifest.permission.READ_MEDIA_IMAGES)
+                } else {
+                    list.add(Manifest.permission.READ_EXTERNAL_STORAGE)
+                }
+                list
+            }
+
+            val multiplePermissionLauncher = rememberLauncherForActivityResult(
+                contract = ActivityResultContracts.RequestMultiplePermissions()
+            ) { map ->
+                val notifGranted = map[Manifest.permission.POST_NOTIFICATIONS] ?: true
+                viewModel.updateAllNotificationsEnabled(notifGranted)
             }
 
             LaunchedEffect(Unit) {
                 TtsSpeaker.initialize(context)
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                    if (ContextCompat.checkSelfPermission(
-                            context,
-                            Manifest.permission.POST_NOTIFICATIONS
-                        ) != PackageManager.PERMISSION_GRANTED
-                    ) {
-                        notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                    }
+                val missing = permissionsToRequest.filter {
+                    ContextCompat.checkSelfPermission(context, it) != PackageManager.PERMISSION_GRANTED
+                }
+                if (missing.isNotEmpty()) {
+                    multiplePermissionLauncher.launch(missing.toTypedArray())
                 }
             }
 
-            CuluTheme(darkTheme = isDark) {
-                CuluAppScaffold(
-                    viewModel = viewModel,
-                    isDark = isDark
-                )
+            CompositionLocalProvider(LocalResponsiveConfig provides responsiveConfig) {
+                CuluTheme(darkTheme = isDark) {
+                    CuluAppScaffold(
+                        viewModel = viewModel,
+                        isDark = isDark
+                    )
+                }
             }
         }
     }
@@ -115,6 +135,7 @@ fun CuluAppScaffold(
     viewModel: CuluViewModel,
     isDark: Boolean
 ) {
+    val responsive = LocalResponsiveConfig.current
     val currentTab by viewModel.currentTab.collectAsState()
     val preferences by viewModel.preferences.collectAsState()
     val todayWaterTotal by viewModel.todayWaterTotal.collectAsState()
@@ -125,7 +146,9 @@ fun CuluAppScaffold(
     val reminderStats by viewModel.reminderStats.collectAsState()
     val isSettingsOpen by viewModel.isSettingsOpen.collectAsState()
     val isAddReminderOpen by viewModel.isAddReminderOpen.collectAsState()
+    val editingReminder by viewModel.editingReminder.collectAsState()
     val waterFlareActive by viewModel.waterFlareActive.collectAsState()
+    var isProfileOpen by remember { mutableStateOf(false) }
 
     val navItems = remember {
         listOf(
@@ -197,47 +220,49 @@ fun CuluAppScaffold(
                     .padding(top = paddingValues.calculateTopPadding())
                     .statusBarsPadding()
             ) {
-                AnimatedContent(
-                    targetState = currentTab,
-                    transitionSpec = {
-                        val isForward = targetState > initialState
-                        val slideOffset = { size: Int -> if (isForward) size / 4 else -size / 4 }
-                        (slideInHorizontally(
-                            animationSpec = spring(dampingRatio = 0.85f, stiffness = Spring.StiffnessMediumLow),
-                            initialOffsetX = slideOffset
-                        ) + fadeIn(animationSpec = spring(stiffness = Spring.StiffnessMediumLow)) + scaleIn(
-                            initialScale = 0.97f,
-                            animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
-                        )).togetherWith(
-                            slideOutHorizontally(
+                AdaptiveContentContainer(maxWidth = responsive.maxContentWidth) {
+                    AnimatedContent(
+                        targetState = currentTab,
+                        transitionSpec = {
+                            val isForward = targetState > initialState
+                            val slideOffset = { size: Int -> if (isForward) size / 4 else -size / 4 }
+                            (slideInHorizontally(
                                 animationSpec = spring(dampingRatio = 0.85f, stiffness = Spring.StiffnessMediumLow),
-                                targetOffsetX = { -slideOffset(it) }
-                            ) + fadeOut(animationSpec = spring(stiffness = Spring.StiffnessMediumLow)) + scaleOut(
-                                targetScale = 0.97f,
+                                initialOffsetX = slideOffset
+                            ) + fadeIn(animationSpec = spring(stiffness = Spring.StiffnessMediumLow)) + scaleIn(
+                                initialScale = 0.97f,
                                 animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
+                            )).togetherWith(
+                                slideOutHorizontally(
+                                    animationSpec = spring(dampingRatio = 0.85f, stiffness = Spring.StiffnessMediumLow),
+                                    targetOffsetX = { -slideOffset(it) }
+                                ) + fadeOut(animationSpec = spring(stiffness = Spring.StiffnessMediumLow)) + scaleOut(
+                                    targetScale = 0.97f,
+                                    animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
+                                )
                             )
-                        )
-                    },
-                    label = "tabTransition"
-                ) { tab ->
-                    when (tab) {
-                        0 -> HomeScreen(
-                            waterTotalMl = todayWaterTotal,
-                            preferences = preferences,
-                            todayEntries = todayWaterEntries,
-                            reminders = allReminders,
-                            todayLogs = todayLogs,
-                            waterFlareActive = waterFlareActive,
-                            onAddWater = { amt -> viewModel.addWater(amt) },
-                            onRemoveWaterEntry = { entry -> viewModel.removeWaterEntry(entry) },
-                            onMarkReminderStatus = { rem, status -> viewModel.markReminderStatus(rem, status) },
-                            onOpenSettings = { viewModel.openSettings(true) },
-                            isDark = isDark
-                        )
+                        },
+                        label = "tabTransition"
+                    ) { tab ->
+                        when (tab) {
+                            0 -> HomeScreen(
+                                waterTotalMl = todayWaterTotal,
+                                preferences = preferences,
+                                todayEntries = todayWaterEntries,
+                                reminders = allReminders,
+                                todayLogs = todayLogs,
+                                waterFlareActive = waterFlareActive,
+                                onAddWater = { amt -> viewModel.addWater(amt) },
+                                onRemoveWaterEntry = { entry -> viewModel.removeWaterEntry(entry) },
+                                onMarkReminderStatus = { rem, status -> viewModel.markReminderStatus(rem, status) },
+                                onOpenSettings = { viewModel.openSettings(true) },
+                                onOpenProfileEdit = { isProfileOpen = true },
+                                isDark = isDark
+                            )
 
-                        1 -> WaterScreen(
-                            waterTotalMl = todayWaterTotal,
-                            preferences = preferences,
+                            1 -> WaterScreen(
+                                waterTotalMl = todayWaterTotal,
+                                preferences = preferences,
                             todayEntries = todayWaterEntries,
                             waterFlareActive = waterFlareActive,
                             onAddWater = { amt -> viewModel.addWater(amt) },
@@ -254,6 +279,7 @@ fun CuluAppScaffold(
                             todayLogs = todayLogs,
                             preferences = preferences,
                             onOpenAddReminder = { viewModel.openAddReminder(true) },
+                            onEditReminder = { rem -> viewModel.openEditReminder(rem) },
                             onToggleActive = { rem -> viewModel.toggleReminderActive(rem) },
                             onDeleteReminder = { rem -> viewModel.deleteReminder(rem) },
                             onMarkReminderStatus = { rem, status -> viewModel.markReminderStatus(rem, status) },
@@ -274,12 +300,31 @@ fun CuluAppScaffold(
             }
         }
 
-        // Add Reminder Bottom Sheet
+        // Add / Edit Reminder Bottom Sheet
         if (isAddReminderOpen) {
             AddReminderSheet(
-                onDismiss = { viewModel.openAddReminder(false) },
+                initialReminder = editingReminder,
+                onDismiss = { viewModel.closeAddOrEditReminder() },
                 onSave = { title, type, dosage, time, days, notify, icon, cat, targetMillis, speakLoud ->
-                    viewModel.addReminder(title, type, dosage, time, days, notify, icon, cat, targetMillis, speakLoud)
+                    val currentEdit = editingReminder
+                    if (currentEdit != null) {
+                        viewModel.updateReminder(
+                            currentEdit.copy(
+                                title = title,
+                                type = type,
+                                dosage = dosage,
+                                timeMinutes = time,
+                                daysOfWeek = days,
+                                isNotificationEnabled = notify,
+                                iconName = icon,
+                                categoryName = cat,
+                                targetDateMillis = targetMillis,
+                                speakLoud = speakLoud
+                            )
+                        )
+                    } else {
+                        viewModel.addReminder(title, type, dosage, time, days, notify, icon, cat, targetMillis, speakLoud)
+                    }
                 },
                 isDark = isDark
             )
@@ -290,6 +335,7 @@ fun CuluAppScaffold(
             SettingsDialog(
                 preferences = preferences,
                 onClose = { viewModel.openSettings(false) },
+                onOpenProfileEdit = { isProfileOpen = true },
                 onUpdateTheme = { mode -> viewModel.updateThemeMode(mode) },
                 onToggleCompactMode = { compact -> viewModel.updateCompactMode(compact) },
                 onToggleHaptics = { haptics -> viewModel.updateHapticsEnabled(haptics) },
@@ -297,5 +343,21 @@ fun CuluAppScaffold(
                 isDark = isDark
             )
         }
+
+        // Profile Edit Dialog
+        if (isProfileOpen) {
+            ProfileEditDialog(
+                currentName = preferences.userName,
+                currentAge = preferences.userAge,
+                currentGender = preferences.userGender,
+                currentPhotoUri = preferences.userPhotoUri,
+                isDark = isDark,
+                onDismiss = { isProfileOpen = false },
+                onSaveProfile = { name, age, gender, photoUri ->
+                    viewModel.updateUserProfile(name, age, gender, photoUri)
+                }
+            )
+        }
     }
+}
 }

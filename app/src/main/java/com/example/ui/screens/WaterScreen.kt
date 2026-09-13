@@ -50,12 +50,14 @@ import androidx.compose.ui.unit.sp
 import com.example.data.database.WaterEntry
 import com.example.data.preferences.UserPreferences
 import com.example.graphics.WaterGlassVisualizer
+import com.example.ui.components.CustomWaterDialog
 import com.example.ui.components.LiquidGlassButton
 import com.example.ui.components.LiquidGlassCard
 import com.example.ui.components.LiquidGlassDialog
 import com.example.ui.components.LiquidGlassPill
 import com.example.ui.components.LiquidGlassProgress
 import com.example.ui.components.LiquidGlassSurface
+import com.example.ui.utils.LocalResponsiveConfig
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -75,7 +77,8 @@ fun WaterScreen(
     isDark: Boolean,
     modifier: Modifier = Modifier
 ) {
-    val isCompact = preferences.compactModeEnabled
+    val responsive = LocalResponsiveConfig.current
+    val isCompact = responsive.isCompactWidth || preferences.compactModeEnabled
     val targetGoal = preferences.dailyWaterGoalMl
     val progressFraction = if (targetGoal > 0) waterTotalMl.toFloat() / targetGoal.toFloat() else 0f
     val remainingMl = (targetGoal - waterTotalMl).coerceAtLeast(0)
@@ -86,17 +89,19 @@ fun WaterScreen(
     var showCustomCupDialog by remember { mutableStateOf(false) }
     var customCupInputText by remember { mutableStateOf(preferences.customQuickCupMl.toString()) }
 
+    var showCustomWaterDialog by remember { mutableStateOf(false) }
+
     val timeFormatter = remember { SimpleDateFormat("h:mm a", Locale.getDefault()) }
 
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(
-            top = if (isCompact) 12.dp else 20.dp,
-            bottom = 110.dp,
-            start = if (isCompact) 14.dp else 20.dp,
-            end = if (isCompact) 14.dp else 20.dp
+            top = responsive.screenTopPadding,
+            bottom = responsive.screenBottomPadding,
+            start = responsive.screenHorizontalPadding,
+            end = responsive.screenHorizontalPadding
         ),
-        verticalArrangement = Arrangement.spacedBy(if (isCompact) 14.dp else 20.dp)
+        verticalArrangement = Arrangement.spacedBy(responsive.itemSpacing)
     ) {
         // Screen Title
         item {
@@ -157,7 +162,7 @@ fun WaterScreen(
                 ) {
                     // Left: Compact round glass visualizer
                     Box(
-                        modifier = Modifier.size(if (isCompact) 120.dp else 140.dp),
+                        modifier = Modifier.size(if (isCompact) 105.dp else 135.dp),
                         contentAlignment = Alignment.Center
                     ) {
                         WaterGlassVisualizer(
@@ -168,7 +173,7 @@ fun WaterScreen(
                         )
                         Text(
                             text = "${(progressFraction * 100).toInt()}%",
-                            fontSize = 18.sp,
+                            fontSize = if (isCompact) 16.sp else 18.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color.White
                         )
@@ -178,7 +183,7 @@ fun WaterScreen(
                     Column(
                         modifier = Modifier
                             .weight(1f)
-                            .padding(start = 18.dp)
+                            .padding(start = if (isCompact) 12.dp else 18.dp)
                     ) {
                         Text(
                             text = "Current Intake",
@@ -221,12 +226,37 @@ fun WaterScreen(
 
         // QUICK ADD CONTAINER SIZES
         item {
-            Text(
-                text = "Quick Hydrate",
-                fontSize = 16.sp,
-                fontWeight = FontWeight.Bold,
-                color = if (isDark) Color.White else Color(0xFF0F172A)
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Quick Hydrate",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = if (isDark) Color.White else Color(0xFF0F172A)
+                )
+
+                LiquidGlassPill(
+                    isDark = isDark,
+                    onClick = { showCustomWaterDialog = true }
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Custom ml",
+                        tint = Color(0xFF38BDF8),
+                        modifier = Modifier.size(13.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(
+                        text = "Custom ml",
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF38BDF8)
+                    )
+                }
+            }
 
             Spacer(modifier = Modifier.height(10.dp))
 
@@ -403,17 +433,18 @@ fun WaterScreen(
                     Spacer(modifier = Modifier.height(8.dp))
                     Row(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
+                        horizontalArrangement = Arrangement.spacedBy(if (isCompact) 6.dp else 8.dp)
                     ) {
                         listOf(45, 60, 90, 120).forEach { mins ->
                             val isSelected = preferences.waterReminderIntervalMinutes == mins
                             LiquidGlassPill(
+                                modifier = Modifier.weight(1f),
                                 isDark = isDark,
                                 onClick = { onUpdateReminderInterval(mins) }
                             ) {
                                 Text(
                                     text = if (mins >= 60) "${mins / 60}h ${if (mins % 60 != 0) "${mins % 60}m" else ""}" else "${mins}m",
-                                    fontSize = 12.sp,
+                                    fontSize = if (isCompact) 11.sp else 12.sp,
                                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                                     color = if (isSelected) {
                                         if (isDark) Color(0xFF38BDF8) else Color(0xFF0284C7)
@@ -695,6 +726,19 @@ fun WaterScreen(
                 }
             }
         }
+    }
+
+    // CUSTOM WATER INTAKE DIALOG
+    if (showCustomWaterDialog) {
+        CustomWaterDialog(
+            initialAmountMl = 250,
+            dailyGoalMl = targetGoal,
+            isDark = isDark,
+            onDismiss = { showCustomWaterDialog = false },
+            onLogWater = { amt, _ ->
+                onAddWater(amt)
+            }
+        )
     }
 }
 

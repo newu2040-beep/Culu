@@ -33,6 +33,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
@@ -49,7 +50,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
@@ -61,6 +61,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.example.graphics.LiquidGlassDefaults
 import com.example.graphics.liquidGlass
+import com.example.ui.utils.LocalResponsiveConfig
 
 @Composable
 fun LiquidGlassSurface(
@@ -87,10 +88,14 @@ fun LiquidGlassCard(
     modifier: Modifier = Modifier,
     shape: Shape = LiquidGlassDefaults.CardShape,
     isDark: Boolean = isSystemInDarkTheme(),
+    contentPadding: PaddingValues? = null,
     onClick: (() -> Unit)? = null,
     testTag: String = "liquid_glass_card",
     content: @Composable ColumnScope.() -> Unit
 ) {
+    val responsive = LocalResponsiveConfig.current
+    val padding = contentPadding ?: PaddingValues(responsive.cardInnerPadding)
+
     Box(
         modifier = modifier
             .testTag(testTag)
@@ -100,7 +105,7 @@ fun LiquidGlassCard(
                 interactivePress = onClick != null,
                 onClick = onClick
             )
-            .padding(18.dp)
+            .padding(padding)
     ) {
         Column(content = content)
     }
@@ -110,10 +115,17 @@ fun LiquidGlassCard(
 fun LiquidGlassPill(
     modifier: Modifier = Modifier,
     isDark: Boolean = isSystemInDarkTheme(),
+    contentPadding: PaddingValues? = null,
     onClick: (() -> Unit)? = null,
     testTag: String = "liquid_glass_pill",
     content: @Composable RowScope.() -> Unit
 ) {
+    val responsive = LocalResponsiveConfig.current
+    val padding = contentPadding ?: PaddingValues(
+        horizontal = responsive.pillPaddingHorizontal,
+        vertical = responsive.pillPaddingVertical
+    )
+
     Box(
         modifier = modifier
             .testTag(testTag)
@@ -124,7 +136,8 @@ fun LiquidGlassPill(
                 interactivePress = onClick != null,
                 onClick = onClick
             )
-            .padding(horizontal = 18.dp, vertical = 10.dp),
+            .defaultMinSize(minHeight = 44.dp, minWidth = 44.dp)
+            .padding(padding),
         contentAlignment = Alignment.Center
     ) {
         Row(
@@ -211,11 +224,18 @@ fun LiquidGlassChip(
     label: String,
     modifier: Modifier = Modifier,
     isDark: Boolean = isSystemInDarkTheme(),
+    contentPadding: PaddingValues? = null,
     icon: ImageVector? = null,
     testTag: String = "liquid_glass_chip"
 ) {
+    val responsive = LocalResponsiveConfig.current
+    val isCompact = responsive.isCompactWidth
     val activeBorderColor = if (isDark) Color(0xFF38BDF8) else Color(0xFF0284C7)
     val activeBgColor = if (isDark) Color(0xFF0284C7).copy(alpha = 0.28f) else Color(0xFFBAE6FD).copy(alpha = 0.50f)
+    val padding = contentPadding ?: PaddingValues(
+        horizontal = responsive.chipPaddingHorizontal,
+        vertical = responsive.chipPaddingVertical
+    )
 
     Box(
         modifier = modifier
@@ -232,25 +252,25 @@ fun LiquidGlassChip(
                 interactivePress = true,
                 onClick = onClick
             )
-            .defaultMinSize(minHeight = 40.dp)
-            .padding(horizontal = 16.dp, vertical = 8.dp),
+            .defaultMinSize(minHeight = if (isCompact) 36.dp else 40.dp)
+            .padding(padding),
         contentAlignment = Alignment.Center
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(6.dp)
+            horizontalArrangement = Arrangement.spacedBy(if (isCompact) 4.dp else 6.dp)
         ) {
             if (icon != null) {
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
-                    modifier = Modifier.size(16.dp),
+                    modifier = Modifier.size(if (isCompact) 14.dp else 16.dp),
                     tint = if (selected) activeBorderColor else (if (isDark) Color.White.copy(alpha = 0.7f) else Color(0xFF475569))
                 )
             }
             Text(
                 text = label,
-                fontSize = 13.sp,
+                fontSize = if (isCompact) 12.sp else 13.sp,
                 fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Medium,
                 color = if (selected) {
                     if (isDark) Color.White else Color(0xFF0369A1)
@@ -327,26 +347,36 @@ fun LiquidGlassNavigationBar(
     modifier: Modifier = Modifier,
     isDark: Boolean = isSystemInDarkTheme()
 ) {
+    val responsive = LocalResponsiveConfig.current
+    val isCompact = responsive.isCompactWidth
+
     Box(
         modifier = modifier
             .navigationBarsPadding()
-            .padding(horizontal = 24.dp, vertical = 12.dp)
+            .padding(
+                horizontal = if (isCompact) 10.dp else 20.dp,
+                vertical = if (isCompact) 8.dp else 12.dp
+            )
             .fillMaxWidth(),
         contentAlignment = Alignment.Center
     ) {
         Box(
             modifier = Modifier
+                .widthIn(max = responsive.maxNavWidth)
                 .liquidGlass(
                     shape = CircleShape,
                     isDark = isDark,
                     blurRadius = 24.dp,
                     borderWidth = 1.2.dp
                 )
-                .padding(horizontal = 8.dp, vertical = 6.dp)
+                .padding(
+                    horizontal = if (isCompact) 6.dp else 10.dp,
+                    vertical = if (isCompact) 4.dp else 6.dp
+                )
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                horizontalArrangement = Arrangement.SpaceEvenly
             ) {
                 items.forEachIndexed { index, item ->
                     val isSelected = index == selectedIndex
@@ -386,19 +416,25 @@ fun LiquidGlassNavigationBar(
                                         .clickable { onItemSelected(index) }
                                 }
                             )
-                            .defaultMinSize(minHeight = 48.dp, minWidth = 56.dp)
-                            .padding(horizontal = 14.dp, vertical = 8.dp),
+                            .defaultMinSize(
+                                minHeight = if (isCompact) 44.dp else 48.dp,
+                                minWidth = if (isCompact) 44.dp else 54.dp
+                            )
+                            .padding(
+                                horizontal = if (isCompact) (if (isSelected) 10.dp else 8.dp) else (if (isSelected) 14.dp else 12.dp),
+                                vertical = if (isCompact) 6.dp else 8.dp
+                            ),
                         contentAlignment = Alignment.Center
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                            horizontalArrangement = Arrangement.spacedBy(if (isCompact) 4.dp else 6.dp)
                         ) {
                             Icon(
                                 imageVector = if (isSelected) item.selectedIcon else item.unselectedIcon,
                                 contentDescription = item.title,
                                 modifier = Modifier
-                                    .size(22.dp)
+                                    .size(if (isCompact) 20.dp else 22.dp)
                                     .graphicsLayer {
                                         scaleX = iconScale
                                         scaleY = iconScale
@@ -413,7 +449,7 @@ fun LiquidGlassNavigationBar(
                             ) {
                                 Text(
                                     text = item.title,
-                                    fontSize = 13.sp,
+                                    fontSize = if (isCompact) 11.sp else 13.sp,
                                     fontWeight = FontWeight.SemiBold,
                                     color = if (isDark) Color.White else Color(0xFF0F172A)
                                 )
@@ -432,20 +468,24 @@ fun LiquidGlassDialog(
     isDark: Boolean = isSystemInDarkTheme(),
     content: @Composable ColumnScope.() -> Unit
 ) {
+    val responsive = LocalResponsiveConfig.current
+    val isSmall = responsive.isSmallScreen
+
     Dialog(
         onDismissRequest = onDismissRequest,
         properties = DialogProperties(usePlatformDefaultWidth = false)
     ) {
         Box(
             modifier = Modifier
-                .fillMaxWidth(0.92f)
+                .widthIn(min = 280.dp, max = responsive.maxDialogWidth)
+                .fillMaxWidth(if (isSmall) 0.94f else 0.88f)
                 .liquidGlass(
                     shape = LiquidGlassDefaults.DialogShape,
                     isDark = isDark,
                     blurRadius = 32.dp,
                     borderWidth = 1.4.dp
                 )
-                .padding(24.dp),
+                .padding(if (isSmall) 16.dp else 22.dp),
             contentAlignment = Alignment.Center
         ) {
             Column(

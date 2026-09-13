@@ -1,9 +1,12 @@
 package com.example.ui.screens
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -16,8 +19,12 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DarkMode
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Female
 import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material.icons.filled.Male
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.SettingsBrightness
 import androidx.compose.material.icons.filled.Vibration
@@ -29,12 +36,16 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import coil.compose.AsyncImage
 import com.example.data.preferences.UserPreferences
+import com.example.graphics.liquidGlass
 import com.example.ui.components.LiquidGlassButton
 import com.example.ui.components.LiquidGlassCard
 import com.example.ui.components.LiquidGlassChip
@@ -46,6 +57,7 @@ import com.example.ui.components.LiquidGlassSurface
 fun SettingsDialog(
     preferences: UserPreferences,
     onClose: () -> Unit,
+    onOpenProfileEdit: () -> Unit,
     onUpdateTheme: (String) -> Unit,
     onToggleCompactMode: (Boolean) -> Unit,
     onToggleHaptics: (Boolean) -> Unit,
@@ -69,7 +81,7 @@ fun SettingsDialog(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Preferences",
+                    text = "Preferences & Profile",
                     fontSize = 20.sp,
                     fontWeight = FontWeight.Bold,
                     color = if (isDark) Color.White else Color(0xFF0F172A)
@@ -86,6 +98,88 @@ fun SettingsDialog(
                         modifier = Modifier.size(16.dp),
                         tint = if (isDark) Color.White else Color(0xFF0F172A)
                     )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // USER PROFILE CARD
+            LiquidGlassSurface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onOpenProfileEdit() }
+                    .testTag("user_profile_card"),
+                shape = RoundedCornerShape(20.dp),
+                isDark = isDark
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        // Avatar
+                        Box(
+                            modifier = Modifier
+                                .size(50.dp)
+                                .clip(CircleShape)
+                                .liquidGlass(shape = CircleShape, isDark = isDark),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (preferences.userPhotoUri.isNotBlank()) {
+                                AsyncImage(
+                                    model = preferences.userPhotoUri,
+                                    contentDescription = "Profile Photo",
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier
+                                        .fillMaxSize()
+                                        .clip(CircleShape)
+                                )
+                            } else {
+                                Icon(
+                                    imageVector = if (preferences.userGender == "Female") Icons.Default.Female else Icons.Default.Male,
+                                    contentDescription = null,
+                                    tint = Color(0xFF38BDF8),
+                                    modifier = Modifier.size(28.dp)
+                                )
+                            }
+                        }
+
+                        Column {
+                            Text(
+                                text = preferences.userName,
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = if (isDark) Color.White else Color(0xFF0F172A)
+                            )
+                            Text(
+                                text = "${preferences.userGender} • ${preferences.userAge} yrs old",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = if (isDark) Color(0xFFBAE6FD) else Color(0xFF0284C7)
+                            )
+                        }
+                    }
+
+                    LiquidGlassPill(
+                        isDark = isDark,
+                        onClick = onOpenProfileEdit,
+                        testTag = "edit_profile_button"
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "Edit Profile",
+                            modifier = Modifier.size(13.dp),
+                            tint = Color(0xFF38BDF8)
+                        )
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text("Edit", fontSize = 11.sp, fontWeight = FontWeight.Bold, color = Color(0xFF38BDF8))
+                    }
                 }
             }
 

@@ -59,6 +59,9 @@ class CuluViewModel(
     private val _isAddReminderOpen = MutableStateFlow(false)
     val isAddReminderOpen: StateFlow<Boolean> = _isAddReminderOpen.asStateFlow()
 
+    private val _editingReminder = MutableStateFlow<ReminderItem?>(null)
+    val editingReminder: StateFlow<ReminderItem?> = _editingReminder.asStateFlow()
+
     // Reaction trigger for visual water flare
     private val _waterFlareActive = MutableStateFlow(false)
     val waterFlareActive: StateFlow<Boolean> = _waterFlareActive.asStateFlow()
@@ -178,7 +181,20 @@ class CuluViewModel(
     }
 
     fun openAddReminder(open: Boolean) {
+        if (!open) {
+            _editingReminder.value = null
+        }
         _isAddReminderOpen.value = open
+    }
+
+    fun openEditReminder(reminder: ReminderItem) {
+        _editingReminder.value = reminder
+        _isAddReminderOpen.value = true
+    }
+
+    fun closeAddOrEditReminder() {
+        _editingReminder.value = null
+        _isAddReminderOpen.value = false
     }
 
     // Water Operations
@@ -240,6 +256,21 @@ class CuluViewModel(
                 ReminderAlarmScheduler.scheduleReminder(context, reminder.copy(id = id))
             }
             HapticUtils.performSuccess(context, preferences.value.hapticsEnabled)
+            _editingReminder.value = null
+            _isAddReminderOpen.value = false
+        }
+    }
+
+    fun updateReminder(reminder: ReminderItem) {
+        viewModelScope.launch {
+            repository.updateReminder(reminder)
+            if (reminder.isActive && reminder.isNotificationEnabled) {
+                ReminderAlarmScheduler.scheduleReminder(context, reminder)
+            } else {
+                ReminderAlarmScheduler.cancelReminder(context, reminder.id)
+            }
+            HapticUtils.performSuccess(context, preferences.value.hapticsEnabled)
+            _editingReminder.value = null
             _isAddReminderOpen.value = false
         }
     }
@@ -338,6 +369,13 @@ class CuluViewModel(
     fun updateThemeMode(mode: String) {
         viewModelScope.launch {
             repository.updateThemeMode(mode)
+        }
+    }
+
+    fun updateUserProfile(name: String, age: Int, gender: String, photoUri: String) {
+        viewModelScope.launch {
+            repository.updateUserProfile(name, age, gender, photoUri)
+            HapticUtils.performSuccess(context, preferences.value.hapticsEnabled)
         }
     }
 

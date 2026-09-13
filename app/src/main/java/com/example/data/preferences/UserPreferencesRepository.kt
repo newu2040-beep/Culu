@@ -21,7 +21,11 @@ data class UserPreferences(
     val themeMode: String = "SYSTEM", // "SYSTEM", "LIGHT", "DARK"
     val compactModeEnabled: Boolean = false,
     val hapticsEnabled: Boolean = true,
-    val allNotificationsEnabled: Boolean = true
+    val allNotificationsEnabled: Boolean = true,
+    val userName: String = "User",
+    val userAge: Int = 25,
+    val userGender: String = "Male", // "Male" or "Female"
+    val userPhotoUri: String = ""
 )
 
 class UserPreferencesRepository(private val context: Context) {
@@ -35,6 +39,10 @@ class UserPreferencesRepository(private val context: Context) {
         val COMPACT_MODE = booleanPreferencesKey("compact_mode")
         val HAPTICS_ENABLED = booleanPreferencesKey("haptics_enabled")
         val ALL_NOTIFICATIONS_ENABLED = booleanPreferencesKey("all_notifications_enabled")
+        val USER_NAME = stringPreferencesKey("user_name")
+        val USER_AGE = intPreferencesKey("user_age")
+        val USER_GENDER = stringPreferencesKey("user_gender")
+        val USER_PHOTO_URI = stringPreferencesKey("user_photo_uri")
     }
 
     val userPreferencesFlow: Flow<UserPreferences> = context.dataStore.data
@@ -47,9 +55,22 @@ class UserPreferencesRepository(private val context: Context) {
                 themeMode = preferences[PreferencesKeys.THEME_MODE] ?: "SYSTEM",
                 compactModeEnabled = preferences[PreferencesKeys.COMPACT_MODE] ?: false,
                 hapticsEnabled = preferences[PreferencesKeys.HAPTICS_ENABLED] ?: true,
-                allNotificationsEnabled = preferences[PreferencesKeys.ALL_NOTIFICATIONS_ENABLED] ?: true
+                allNotificationsEnabled = preferences[PreferencesKeys.ALL_NOTIFICATIONS_ENABLED] ?: true,
+                userName = preferences[PreferencesKeys.USER_NAME] ?: "User",
+                userAge = preferences[PreferencesKeys.USER_AGE] ?: 25,
+                userGender = preferences[PreferencesKeys.USER_GENDER] ?: "Male",
+                userPhotoUri = preferences[PreferencesKeys.USER_PHOTO_URI] ?: ""
             )
         }
+
+    suspend fun updateUserProfile(name: String, age: Int, gender: String, photoUri: String) {
+        context.dataStore.edit { preferences ->
+            preferences[PreferencesKeys.USER_NAME] = name
+            preferences[PreferencesKeys.USER_AGE] = age
+            preferences[PreferencesKeys.USER_GENDER] = gender
+            preferences[PreferencesKeys.USER_PHOTO_URI] = photoUri
+        }
+    }
 
     suspend fun updateDailyWaterGoal(goalMl: Int) {
         context.dataStore.edit { preferences ->

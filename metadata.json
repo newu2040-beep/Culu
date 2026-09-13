@@ -1,0 +1,6 @@
+{
+  "name": "CULU",
+  "description": "Daily wellness reminder and routine companion with a premium Liquid Glass interface",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

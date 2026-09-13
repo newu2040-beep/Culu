@@ -20,6 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.DarkMode
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Female
 import androidx.compose.material.icons.filled.LightMode
 import androidx.compose.material.icons.filled.Male
@@ -307,6 +308,44 @@ fun SettingsDialog(
                             color = if (isDark) Color.White.copy(alpha = 0.65f) else Color(0xFF64748B)
                         )
                     }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(14.dp))
+
+            // DEVELOPER CREDIT CARD
+            LiquidGlassSurface(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("developer_credit_card"),
+                shape = RoundedCornerShape(18.dp),
+                isDark = isDark
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(14.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "Made with ",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = if (isDark) Color.White.copy(alpha = 0.85f) else Color(0xFF475569)
+                    )
+                    Icon(
+                        imageVector = Icons.Default.Favorite,
+                        contentDescription = "Love",
+                        tint = Color(0xFFEF4444),
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(
+                        text = " by Rahul Shah",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = if (isDark) Color.White else Color(0xFF0F172A)
+                    )
                 }
             }
 

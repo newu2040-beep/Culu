@@ -103,18 +103,18 @@ fun HomeScreen(
     var showCustomWaterDialog by remember { mutableStateOf(false) }
     var customWaterInput by remember { mutableStateOf("300") }
 
-    val greeting = remember {
+    val (greetingText, timeOfDayBadge) = remember {
         val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
         when (hour) {
-            in 5..11 -> "Good morning"
-            in 12..16 -> "Good afternoon"
-            in 17..21 -> "Good evening"
-            else -> "Peaceful night"
+            in 5..11 -> "Good Morning ☀️" to "Morning"
+            in 12..16 -> "Good Afternoon 🌤️" to "Afternoon"
+            in 17..21 -> "Good Evening 🌆" to "Evening"
+            else -> "Good Night 🌙" to "Night"
         }
     }
 
     val todayFormattedDate = remember {
-        val sdf = SimpleDateFormat("EEEE, MMMM d", Locale.getDefault())
+        val sdf = SimpleDateFormat("EEEE, MMMM d, yyyy", Locale.getDefault())
         sdf.format(Date())
     }
 
@@ -174,7 +174,7 @@ fun HomeScreen(
 
                     Column {
                         Text(
-                            text = "$greeting, ${preferences.userName}",
+                            text = "$greetingText, ${preferences.userName}",
                             fontSize = if (isCompact) 17.sp else 21.sp,
                             fontWeight = FontWeight.Bold,
                             color = if (isDark) Color.White else Color(0xFF0F172A),
